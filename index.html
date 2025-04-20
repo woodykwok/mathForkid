@@ -1,0 +1,403 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Drag and Drop for Kids</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #2e8b57;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            max-width: 1000px;
+        }
+        .box {
+            border: 2px solid #4682b4;
+            border-radius: 10px;
+            padding: 10px;
+            background-color: #fff;
+            min-height: 200px;
+            margin: 10px;
+            text-align: center;
+        }
+        #numbers, #operators {
+            width: 200px;
+        }
+        .equation {
+            width: 300px;
+        }
+        .item {
+            padding: 10px;
+            margin: 5px;
+            background-color: #add8e6;
+            border-radius: 5px;
+            cursor: move;
+            font-size: 1.2em;
+            user-select: none;
+        }
+        .operator {
+            background-color: #ffb6c1;
+        }
+        .result-box, .answer-box {
+            margin-top: 20px;
+            border: 2px solid #4682b4;
+            border-radius: 10px;
+            background-color: #fff;
+            padding: 15px;
+            width: 80%;
+            max-width: 1000px;
+            text-align: center;
+        }
+        #feedback, #correct-answer {
+            font-size: 2em;
+            color: #2f4f4f;
+            margin-top: 10px;
+        }
+        .drop-slot {
+            border: 2px dashed #4682b4;
+            border-radius: 5px;
+            margin: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e6e6fa;
+        }
+        .equation .drop-slot.number {
+            min-height: 50px;
+            width: 70px;
+            font-size: 1.6em;
+        }
+        .equation .drop-slot#operator {
+            min-height: 50px;
+            width: 50px;
+            font-size: 1.4em;
+        }
+        .result-box .drop-slot {
+            min-height: 40px;
+            width: 200px;
+            font-size: 1.2em;
+        }
+        .number-slots {
+            display: flex;
+            justify-content: center;
+        }
+        .dragging {
+            opacity: 0.5;
+        }
+        #clear-button, #answer-button, #random-button {
+            margin-top: 10px;
+            margin-right: 10px;
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background-color: #add8e6;
+            border: 2px solid #4682b4;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #2f4f4f;
+        }
+        #clear-button:hover, #answer-button:hover, #random-button:hover {
+            background-color: #87ceeb;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+</style>
+</head>
+<body>
+    <h1>Math Fun: Drag and Drop!</h1>
+    <div class="container">
+        <div class="box" id="numbers">
+            <h2>Numbers</h2>
+            <div class="item" draggable="true">0</div>
+            <div class="item" draggable="true">1</div>
+            <div class="item" draggable="true">2</div>
+            <div class="item" draggable="true">3</div>
+            <div class="item" draggable="true">4</div>
+            <div class="item" draggable="true">5</div>
+            <div class="item" draggable="true">6</div>
+            <div class="item" draggable="true">7</div>
+            <div class="item" draggable="true">8</div>
+            <div class="item" draggable="true">9</div>
+        </div>
+        <div class="box" id="operators">
+            <h2>Operators</h2>
+            <div class="item operator" draggable="true">+</div>
+            <div class="item operator" draggable="true">-</div>
+            <div class="item operator" draggable="true">×</div>
+            <div class="item operator" draggable="true">÷</div>
+        </div>
+        <div class="box equation" id="equation">
+            <h2>Make Equation</h2>
+            <div class="number-slots">
+                <div class="drop-slot number" id="first-number-1"></div>
+                <div class="drop-slot number" id="first-number-2"></div>
+            </div>
+            <div class="drop-slot" id="operator"></div>
+            <div class="number-slots">
+                <div class="drop-slot number" id="second-number-1"></div>
+                <div class="drop-slot number" id="second-number-2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="result-box">
+        <h2>Drop Your Answer</h2>
+        <div class="number-slots">
+            <div class="drop-slot" id="result-number-1"></div>
+            <div class="drop-slot" id="result-number-2"></div>
+        </div>
+        <div id="feedback">Make an equation, then drop your answer here!</div>
+    </div>
+    <div class="answer-box">
+        <h2>Correct Answer</h2>
+        <div id="correct-answer">Click "Answer" to see the correct answer!</div>
+        <div class="button-container">
+            <button id="random-button">Random</button>
+            <button id="clear-button">Clear</button>
+            <button id="answer-button">Answer</button>
+        </div>
+    </div>
+
+    <script>
+        const items = document.querySelectorAll('.item');
+        const dropSlots = document.querySelectorAll('.drop-slot');
+        const feedbackDiv = document.getElementById('feedback');
+        const clearButton = document.getElementById('clear-button');
+        const answerButton = document.getElementById('answer-button');
+        const randomButton = document.getElementById('random-button');
+        const correctAnswerDiv = document.getElementById('correct-answer');
+
+        // Add drag events to items
+        items.forEach(item => {
+            item.addEventListener('dragstart', dragStart);
+            item.addEventListener('dragend', dragEnd);
+        });
+
+        // Add drop events to slots
+        dropSlots.forEach(slot => {
+            slot.addEventListener('dragover', dragOver);
+            slot.addEventListener('dragenter', dragEnter);
+            slot.addEventListener('dragleave', dragLeave);
+            slot.addEventListener('drop', drop);
+        });
+
+        // Add button functionality
+        clearButton.addEventListener('click', clearEquation);
+        answerButton.addEventListener('click', showCorrectAnswer);
+        randomButton.addEventListener('click', generateRandomEquation);
+
+        function dragStart(e) {
+            e.dataTransfer.setData('text/plain', e.target.textContent);
+            setTimeout(() => e.target.classList.add('dragging'), 0);
+        }
+
+        function dragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function dragEnter(e) {
+            e.preventDefault();
+            e.target.classList.add('hovered');
+        }
+
+        function dragLeave(e) {
+            e.target.classList.remove('hovered');
+        }
+
+        function drop(e) {
+            e.preventDefault();
+            const data = e.dataTransfer.getData('text/plain');
+            const target = e.target;
+
+            // Remove hover effect
+            target.classList.remove('hovered');
+
+            // Validate drop based on slot
+            if (target.id.startsWith('first-number') || target.id.startsWith('second-number') || target.id.startsWith('result-number')) {
+                if (!isNaN(data)) {
+                    target.textContent = data;
+                }
+            } else if (target.id === 'operator' && ['+', '-', '×', '÷'].includes(data)) {
+                target.textContent = data;
+            }
+
+            verifyAnswer();
+        }
+
+        function clearEquation() {
+            document.getElementById('first-number-1').textContent = '';
+            document.getElementById('first-number-2').textContent = '';
+            document.getElementById('operator').textContent = '';
+            document.getElementById('second-number-1').textContent = '';
+            document.getElementById('second-number-2').textContent = '';
+            document.getElementById('result-number-1').textContent = '';
+            document.getElementById('result-number-2').textContent = '';
+            feedbackDiv.textContent = 'Make an equation, then drop your answer here!';
+            correctAnswerDiv.textContent = 'Click "Answer" to see the correct answer!';
+        }
+
+        function generateRandomEquation() {
+            // Clear existing equation and answer
+            clearEquation();
+
+            // Randomly choose operator (+ or -)
+            const operator = Math.random() < 0.5 ? '+' : '-';
+
+            let firstNum, secondNum;
+            if (operator === '+') {
+                // For addition: Ensure firstNum + secondNum <= 50
+                firstNum = Math.floor(Math.random() * 51); // 0–50
+                secondNum = Math.floor(Math.random() * (51 - firstNum)); // Ensure sum <= 50
+            } else {
+                // For subtraction: Ensure firstNum - secondNum >= 0 and firstNum <= 50
+                firstNum = Math.floor(Math.random() * 51); // 0–50
+                secondNum = Math.floor(Math.random() * (firstNum + 1)); // Ensure result >= 0
+            }
+
+            // Convert numbers to two-digit strings (or single digit if < 10)
+            const firstNumStr = firstNum.toString().padStart(2, '0').split('');
+            const secondNumStr = secondNum.toString().padStart(2, '0').split('');
+
+            // Fill equation slots
+            document.getElementById('first-number-1').textContent = firstNumStr[0];
+            document.getElementById('first-number-2').textContent = firstNumStr[1];
+            document.getElementById('operator').textContent = operator;
+            document.getElementById('second-number-1').textContent = secondNumStr[0];
+            document.getElementById('second-number-2').textContent = secondNumStr[1];
+
+            // Update feedback
+            verifyAnswer();
+        }
+
+        function calculateCorrectResult() {
+            const firstNum1 = document.getElementById('first-number-1').textContent;
+            const firstNum2 = document.getElementById('first-number-2').textContent;
+            const secondNum1 = document.getElementById('second-number-1').textContent;
+            const secondNum2 = document.getElementById('second-number-2').textContent;
+            const operator = document.getElementById('operator').textContent;
+
+            // Combine digits for first and second numbers
+            const firstNumStr = (firstNum1 || '') + (firstNum2 || '');
+            const secondNumStr = (secondNum1 || '') + (secondNum2 || '');
+
+            const firstNum = firstNumStr ? parseInt(firstNumStr) : NaN;
+            const secondNum = secondNumStr ? parseInt(secondNumStr) : NaN;
+
+            if (!isNaN(firstNum) && operator && !isNaN(secondNum)) {
+                switch (operator) {
+                    case '+':
+                        return { value: firstNum + secondNum, firstNum, secondNum };
+                    case '-':
+                        return { value: firstNum - secondNum, firstNum, secondNum };
+                    case '×':
+                        return { value: firstNum * secondNum, firstNum, secondNum };
+                    case '÷':
+                        return secondNum !== 0 
+                            ? { value: parseFloat((firstNum / secondNum).toFixed(2)), firstNum, secondNum }
+                            : { value: null, firstNum, secondNum, error: 'Cannot divide by 0' };
+                }
+            }
+            return { value: null, firstNum, secondNum };
+        }
+
+        function verifyAnswer() {
+            const resultNum1 = document.getElementById('result-number-1').textContent;
+            const resultNum2 = document.getElementById('result-number-2').textContent;
+            const resultStr = (resultNum1 || '') + (resultNum2 || '');
+            const userAnswer = resultStr ? parseInt(resultStr) : NaN;
+
+            const { value: correctAnswer, firstNum, secondNum, error } = calculateCorrectResult();
+            const operator = document.getElementById('operator').textContent;
+
+            if (!isNaN(firstNum) && operator && !isNaN(secondNum)) {
+                if (error) {
+                    feedbackDiv.textContent = `${firstNum} ${operator} ${secondNum} = Cannot divide by 0`;
+                } else if (!isNaN(userAnswer)) {
+                    if (userAnswer === correctAnswer || (operator === '÷' && Math.abs(userAnswer - correctAnswer) < 0.01)) {
+                        feedbackDiv.textContent = `Correct! ${firstNum} ${operator} ${secondNum} = ${correctAnswer}`;
+                    } else {
+                        feedbackDiv.textContent = `Try again!`;
+                    }
+                } else {
+                    feedbackDiv.textContent = `Drop your answer for ${firstNum} ${operator} ${secondNum}`;
+                }
+            } else {
+                feedbackDiv.textContent = 'Make an equation, then drop your answer here!';
+            }
+        }
+
+        function showCorrectAnswer() {
+            const { value: correctAnswer, firstNum, secondNum, error } = calculateCorrectResult();
+            const operator = document.getElementById('operator').textContent;
+
+            if (!isNaN(firstNum) && operator && !isNaN(secondNum)) {
+                if (error) {
+                    correctAnswerDiv.textContent = `${firstNum} ${operator} ${secondNum} = Cannot divide by 0`;
+                } else {
+                    correctAnswerDiv.textContent = `${firstNum} ${operator} ${secondNum} = ${correctAnswer}`;
+                }
+            } else {
+                correctAnswerDiv.textContent = 'Complete the equation to see the answer!';
+            }
+        }
+    </script>
+</body>
+</html>
